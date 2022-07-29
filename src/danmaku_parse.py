@@ -6,8 +6,8 @@ from google.protobuf.json_format import MessageToJson
 # 弹幕下载函数 -> 批量 -> 异步协程
  
 def dmk_download(params: dict, name, save_json=True, save_so=False) -> None:
-    url_real_time = 'https://api.bilibili.com/x/v2/dm/web/seg.so'
-    resp = requests.get(url_real_time, params=params)
+    url = 'https://api.bilibili.com/x/v2/dm/web/seg.so'
+    resp = requests.get(url, params=params)
  
     DM = DmSegMobileReply() # 导入 protoc 结构体
     DM.ParseFromString(resp.content) # 解析字符串
@@ -44,8 +44,8 @@ def download_task_dm(id_str: str) -> None:
     for ep in dic["info_list"]:
         params = {
             "type": 1, 
-            "oid": ep["aid"], 
-            "pid": ep["cid"], 
+            "oid": ep["cid"], 
+            "pid": ep["aid"], 
             "segment_index": 1, 
         }
         dmk_download(params, ep["name"])

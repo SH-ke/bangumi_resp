@@ -138,7 +138,7 @@ async def playlist_task(bvid: str) -> list:
     }
 
 async def main() -> None:
-    id_str = "103923"
+    id_str = "327584"
     # id_str = "BV1tV411U7N3"
     isSave = True
 
@@ -170,7 +170,7 @@ async def main() -> None:
         return
 
     if isSave:
-        with open(f"target/task_{id_str}.json", "w", encoding="utf8") as f:
+        with open(f"target/task/task_{id_str}.json", "w", encoding="utf8") as f:
             json.dump(task_json, f, indent=4, ensure_ascii=False)
 
 if __name__ == '__main__':
