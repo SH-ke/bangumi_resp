@@ -1,2 +1,5 @@
 venv
 __pycache__
+
+# 编译文件、下载文件
+target
