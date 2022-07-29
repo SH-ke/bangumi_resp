@@ -3,14 +3,9 @@ import requests
 from dm_pb2 import DmSegMobileReply
 from google.protobuf.json_format import MessageToJson
  
+# 弹幕下载函数 -> 批量 -> 异步协程
  
-def dm_real_time():
-    params = {
-        "type": 1, 
-        "oid": 168855206, 
-        "pid": 98919207, 
-        "segment_index": 1, 
-        }
+def dmk_download(params: dict, name, save_json=True, save_so=False) -> None:
     url_real_time = 'https://api.bilibili.com/x/v2/dm/web/seg.so'
     resp = requests.get(url_real_time, params=params)
  
@@ -31,15 +26,39 @@ def dm_real_time():
         print(f"k = {k}, v = {v}")
 
     # 保存弹幕文件为json
-    with open("target/dm_sgbl.json", "w", encoding="utf8") as f:
-        json.dump({
-            "elems": dm_list, 
-        }, f, indent=4)
+    if save_json:
+        with open(f"target/dm/dm_{name}.json", "w", encoding="utf8") as f:
+            json.dump({
+                "elems": dm_list, 
+            }, f, indent=4, ensure_ascii=False)
 
     # 直接保存二进制文件
-    with open("target/dm_sgbl.seg.so", "wb") as f:
-        f.write(resp.content)
+    if save_so:
+        with open(f"target/dm/dm_{name}.seg.so", "wb") as f:
+            f.write(resp.content)
  
+
+def download_task_dm(id_str: str) -> None:
+    with open(f"target/task/task_{id_str}.json", "r", encoding="utf8") as f:
+        dic = json.load(f)
+    for ep in dic["info_list"]:
+        params = {
+            "type": 1, 
+            "oid": ep["aid"], 
+            "pid": ep["cid"], 
+            "segment_index": 1, 
+        }
+        dmk_download(params, ep["name"])
+
  
 if __name__ == '__main__':
-    dm_real_time()
+    from datetime import datetime
+    # os.system('chcp 65001') # 控制台中文编码
+
+    start = datetime.now()
+    # 主入口
+    id_str = "327584"
+    download_task_dm(id_str)
+
+    end = datetime.now()
+    print(f"共耗时{end - start}")
