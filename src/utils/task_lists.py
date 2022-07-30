@@ -137,7 +137,7 @@ async def playlist_task(bvid: str) -> list:
         "info_list": info_list, 
     }
 
-async def main() -> None:
+async def task_download() -> None:
     id_str = "327584"
     # id_str = "BV1tV411U7N3"
     isSave = True
@@ -180,7 +180,7 @@ if __name__ == '__main__':
     start = datetime.now()
     # 主入口
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+    loop.run_until_complete(task_download())
 
     end = datetime.now()
     print(f"共耗时{end - start}")

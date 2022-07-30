@@ -124,8 +124,6 @@ async def main(index=True):
         print("{:+^50}".format(f" part = {p} done "))
 
 
-
-
 if __name__ == '__main__':
     from datetime import datetime
     os.system('chcp 65001') # 控制台中文编码
