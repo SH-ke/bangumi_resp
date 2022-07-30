@@ -170,6 +170,7 @@ async def task_download() -> None:
         return
 
     if isSave:
+        print("写入文件")
         with open(f"target/task/task_{id_str}.json", "w", encoding="utf8") as f:
             json.dump(task_json, f, indent=4, ensure_ascii=False)
 

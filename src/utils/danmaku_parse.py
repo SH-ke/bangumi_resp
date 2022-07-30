@@ -9,12 +9,9 @@ from google.protobuf.json_format import MessageToJson
 async def dmk_download(sess: aiohttp.ClientSession, params: dict, HEADERS: dict, 
                     url: str, DM: DmSegMobileReply, 
                     name, save_json=True, save_so=False) -> bool:
-    # url = 'https://api.bilibili.com/x/v2/dm/web/seg.so'
-    # resp = requests.get(url, params=params)
     async with sess.get(url, params=params, headers=HEADERS) as resp:
         # 一次性获取弹幕二进制文件
         # 不用担心内存问题，弹幕文件本来就不大，而且已经360秒做了分块，可以一次性获取
-        print(f"{name}_{params['segment_index']}")
         content = await resp.content.read()
         # 若返回值为空 则 return
         if not content:
@@ -42,6 +39,7 @@ async def dmk_download(sess: aiohttp.ClientSession, params: dict, HEADERS: dict,
             with open(f"target/dm/dm_{name}_{params['segment_index']}.seg.so", "wb") as f:
                 f.write(content)
     
+        print(f"{name}_{params['segment_index']}")
     return True
  
 
@@ -61,7 +59,7 @@ async def download_task_dm(id_str: str) -> None:
         for ep in dic["info_list"]:
             # status = True # 若返回值为空 则跳过循环
             # 弹幕每 360s 为一个文件，通过视频总时长，计算出一共有多少个文件
-            print("seg.so file num is ", int(ep["duration"]/360*1e-3))
+            # print("seg.so file num is ", int(ep["duration"]/360*1e-3))
             for i in range(int(ep["duration"]/360*1e-3) + 1):
                 HEADERS["User-Agent"] = ua.random
                 params = {
@@ -73,7 +71,7 @@ async def download_task_dm(id_str: str) -> None:
                 tasks.append(asyncio.create_task(dmk_download(sess, params, HEADERS, url, DM, ep["name"])))
 
             # 测试一个视频
-            break
+            # break
         await asyncio.wait(tasks)
 
  
@@ -83,7 +81,7 @@ if __name__ == '__main__':
 
     start = datetime.now()
     # 主入口
-    id_str = "15185"
+    id_str = "327584"
     loop = asyncio.get_event_loop()
     loop.run_until_complete(download_task_dm(id_str))
 
