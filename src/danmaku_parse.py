@@ -4,6 +4,8 @@ from dm_pb2 import DmSegMobileReply
 from google.protobuf.json_format import MessageToJson
  
 # 弹幕下载函数 -> 批量 -> 异步协程
+# ToDo 编写异步协程 弹幕下载程序
+# ToDo 观察弹幕分文件的原因 观察不同文件视频的时间分布、发布时间分布
  
 def dmk_download(params: dict, name, save_json=True, save_so=False) -> bool:
     url = 'https://api.bilibili.com/x/v2/dm/web/seg.so'
@@ -43,6 +45,7 @@ def dmk_download(params: dict, name, save_json=True, save_so=False) -> bool:
 def download_task_dm(id_str: str) -> None:
     with open(f"target/task/task_{id_str}.json", "r", encoding="utf8") as f:
         dic = json.load(f)
+    # 遍历 task_list 下载番剧分集的弹幕
     for ep in dic["info_list"]:
         params = {
             "type": 1, 
@@ -50,10 +53,14 @@ def download_task_dm(id_str: str) -> None:
             "pid": ep["aid"], 
             "segment_index": 1, 
         }
-        status = True
-        while status:
+        status = True # 若返回值为空 则跳过循环
+        # 弹幕每 360s 为一个文件，通过视频总时长，计算出一共有多少个文件
+        print("seg.so file num is ", int(ep["duration"]/360*1e-3))
+        for i in range(int(ep["duration"]/360*1e-3) + 1):
+            params["segment_index"] = i+1
             status = dmk_download(params, ep["name"])
-            params["segment_index"] += 1
+            if not status:
+                continue
 
         # if ep["p"] > 2:
         #     break
