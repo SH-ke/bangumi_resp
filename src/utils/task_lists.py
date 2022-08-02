@@ -15,7 +15,7 @@ BUVID3 = ""
 FFMPEG_PATH = "ffmpeg"
 
 
-async def season_urls(ep: dict, info_list: list, credential: Credential) -> None:
+async def season_resp(ep: dict, info_list: list, credential: Credential) -> None:
     bvid = ep["bvid"]
     videoName = ep["share_copy"].split()[-1] # 视频名称
     p = ep["title"] # 视频序号
@@ -79,7 +79,7 @@ async def season_task(ep_id: str) -> dict:
     info_list = []
     tasks = []
     for ep in result["episodes"]:
-        tasks.append(asyncio.create_task(season_urls(ep, info_list, credential)))
+        tasks.append(asyncio.create_task(season_resp(ep, info_list, credential)))
 
     await asyncio.wait(tasks) # 分配协程任务
 
@@ -137,7 +137,10 @@ async def playlist_task(bvid: str) -> list:
         "info_list": info_list, 
     }
 
-async def task_download() -> None:
+
+# 主函数【创建任务列表】
+# 判别id号的类别使用合适的解析方式下载，目前支持两种解析方式 [season_task/playlist_task]
+async def task_match() -> None:
     id_str = "327584"
     # id_str = "BV1tV411U7N3"
     isSave = True
@@ -152,6 +155,7 @@ async def task_download() -> None:
     魔禁1 83815
     龙与虎 66547
     日常 15185
+    奇蛋物语 374357
 
     CSAPP BV1tV411U7N3
     '''
@@ -181,7 +185,7 @@ if __name__ == '__main__':
     start = datetime.now()
     # 主入口
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(task_download())
+    loop.run_until_complete(task_match())
 
     end = datetime.now()
     print(f"共耗时{end - start}")
@@ -190,3 +194,19 @@ if __name__ == '__main__':
     ## 使用 task_list 目前必须为 番剧 电视剧 视频列表
     # 番剧、电视剧使用 ep_id 检索，一个电视剧对应多个 BV 号；
     # 视频列表都只有一个 BV 号
+
+    ## season 解析思路
+    # ep_id -> json["result"]["episodes"]
+
+    ## playlist 解析思路
+    # bvid -> get_info() -> json["ugc_season"]["sections"][0]["episodes"]
+    # 获取到 [p, aid, cid, bvid, name, duration]
+    # bvid -> get_download_url -> video_url, audio_url
+
+    ## 统一化修改
+    # 信息列表响应[ep_id/bvid] -> json_parse[键值对有出入] -> 
+    # [p, aid, cid, bvid, (title/share_copy), (page-duration/duration)] (playlist/season)
+    # [此处为多次响应，应用异步协程]info_list -> video_url, audio_url
+
+    ## 函数分配
+    # url_resp(), season_parse(), playlist_parse(), task_match()
