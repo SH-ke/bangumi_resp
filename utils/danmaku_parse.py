@@ -49,7 +49,7 @@ async def seg_so_resp(sess: aiohttp.ClientSession, params: dict, HEADERS: dict,
 # 主函数【弹幕下载】
 # 下载 task_xx.json 中的所有弹幕任务 开辟多个异步协程任务[seg_so_resp] 
 async def dmk_task(id_str: str) -> None:
-    with open(f"target/task/task_{id_str}.json", "r", encoding="utf8") as f:
+    with open(f"target/task/info_{id_str}.json", "r", encoding="utf8") as f:
         dic = json.load(f)
 
     ua = UserAgent()
@@ -86,7 +86,7 @@ if __name__ == '__main__':
 
     start = datetime.now()
     # 主入口
-    id_str = "327584"
+    id_str = "327871"
     loop = asyncio.get_event_loop()
     loop.run_until_complete(dmk_task(id_str))
 
@@ -101,6 +101,7 @@ if __name__ == '__main__':
 // check point json
 {
     list: "", # task_list.json的绝对路径
+    title:
     tasks: [
         {
             name:, 
@@ -109,6 +110,7 @@ if __name__ == '__main__':
             video: True, 
             audio: Fase, # 未执行
             merge: False, # 未执行
+            dmk_list: [0, 0, 0], # 弹幕的下载列表
         },     
     ]
 }

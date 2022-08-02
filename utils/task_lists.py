@@ -55,7 +55,7 @@ async def season_resp(ep: dict, info_list: list, credential: Credential) -> None
         'duration': ep["duration"], 
     }
     info_list.append(info)
-    print(f"[info | resp done] bvid = {bvid}, p = {p}, name = {videoName}")
+    print("[info] resp done: bvid = {}, p = {:>4}, name = {}".format(bvid, p, videoName))
 
 
 async def season_task(ep_id: str) -> dict:
@@ -141,7 +141,7 @@ async def playlist_task(bvid: str) -> list:
 # 主函数【创建任务列表】
 # 判别id号的类别使用合适的解析方式下载，目前支持两种解析方式 [season_task/playlist_task]
 async def task_match() -> None:
-    id_str = "327584"
+    id_str = "327871"
     # id_str = "BV1tV411U7N3"
     isSave = True
 
@@ -149,6 +149,7 @@ async def task_match() -> None:
     三国   327584
     西游   327107
     西游续 327339
+    红楼梦 327871
 
     埃罗芒阿 103923 / 373847
     修罗场 65401
@@ -173,9 +174,9 @@ async def task_match() -> None:
         print("暂不支持该种解析")
         return
 
+    print("请求收集完毕！")
     if isSave:
-        print("写入文件")
-        with open(f"target/task/task_{id_str}.json", "w", encoding="utf8") as f:
+        with open(f"target/task/info_{id_str}.json", "w", encoding="utf8") as f:
             json.dump(task_json, f, indent=4, ensure_ascii=False)
 
 if __name__ == '__main__':
@@ -210,3 +211,5 @@ if __name__ == '__main__':
 
     ## 函数分配
     # url_resp(), season_parse(), playlist_parse(), task_match()
+    # 为task_list 添加更新日期
+    # 构建弹幕数据库时需要构建一个暴搜函数，暴力搜索ep_id
