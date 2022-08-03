@@ -183,38 +183,6 @@ if __name__ == '__main__':
     end = datetime.now()
     print(f"共耗时{end - start}")
 
-''' '''
-    ## 断点续传 check_point
-    # 1. 根据 task_xxx.json 设计check_point_xxx.json
-    # creat()
-'''
-// check point json
-{
-    list: "", # task_list.json的绝对路径
-    title:
-    tasks: [
-        {
-            name:, 
-            id:, 
-            dmk: True, # 已下载
-            video: True, 
-            audio: Fase, # 未执行
-            merge: False, # 未执行
-            dmk_list: [0, 0, 0], # 弹幕的下载列表
-        },     
-    ]
-}
-'''
-
-    # 2. run_check_point()
-    # 获取task_list文件路径 -> 遍历tasks 列表 -> 将对应任务加入tasks列表
-
-    # 3. finish()
-    # 将对应任务置为 True 
-
-    # 4. is_finished()
-    # 判断所有任务是否完成
-
     # 5. merge_signal()
     # 合并任务的信号，每次完成视频、音频的任务后判断一次
     # 判断此视频的视频、音频文件是否下载完成
@@ -226,3 +194,13 @@ if __name__ == '__main__':
 
     # 7. ass_parse()
     # 弹幕解析任务 将json格式的弹幕数据转化为ass格式
+
+    ## 断点续传部分功能还未实现
+    # 1. 架构调整 所有文件重命名均以 bvid 为准，减少不必要的麻烦
+    # 防止 dm_fate/zero.json 此类名称的出现
+    # task_list中的p 出现了 '14(OVA)' '4 - 1' 需要调整
+    # 调整之后要对之前的版本进行兼容 adaptor/rename_dmk 
+    # 以 bvid 重命名文件
+    # 2. 添加配置文件 存储变量 路径等信息
+    # 3. 添加更高层级的批量操作 调研ss_id ep_id 的区别
+    # 寻找批量的接口 api
