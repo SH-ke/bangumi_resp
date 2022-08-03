@@ -10,8 +10,7 @@ from google.protobuf.json_format import MessageToJson
 # 异步协程【seg.so接口响应】
 # 单次请求一个seg.so文件，是协程下载的最小任务单元
 async def seg_so_resp(sess: aiohttp.ClientSession, params: dict, HEADERS: dict, 
-                    url: str, DM: DmSegMobileReply, 
-                    name, save_json=True, save_so=False) -> bool:
+                    url: str, name: str, save_json=True, save_so=False) -> bool:
     async with sess.get(url, params=params, headers=HEADERS) as resp:
         # 一次性获取弹幕二进制文件
         # 不用担心内存问题，弹幕文件本来就不大，而且已经360秒做了分块，可以一次性获取
@@ -42,7 +41,7 @@ async def seg_so_resp(sess: aiohttp.ClientSession, params: dict, HEADERS: dict,
             with open(f"target/dm/dm_{name}_{params['segment_index']}.seg.so", "wb") as f:
                 f.write(content)
     
-        print(f"{name}_{params['segment_index']}")
+        print(f"{name}_{params['segment_index']} 下载完成")
     return True
 
 
@@ -57,7 +56,7 @@ async def dmk_task(id_str: str) -> None:
         "User-Agent": ua.random, 
     }
     url = 'https://api.bilibili.com/x/v2/dm/web/seg.so'
-    DM = DmSegMobileReply() # 导入 protoc 结构体
+    # DM = DmSegMobileReply() # 导入 protoc 结构体
     # 遍历 task_list 下载番剧分集的弹幕
     tasks = [] # 协程任务列表
     async with aiohttp.ClientSession() as sess:
@@ -73,7 +72,7 @@ async def dmk_task(id_str: str) -> None:
                     "pid": ep["aid"], 
                     "segment_index": i+1, 
                 }
-                tasks.append(asyncio.create_task(seg_so_resp(sess, params, HEADERS, url, DM, ep["name"])))
+                tasks.append(asyncio.create_task(seg_so_resp(sess, params, HEADERS, url, ep["name"])))
 
             # 测试一个视频
             # break

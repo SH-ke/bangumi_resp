@@ -141,7 +141,7 @@ async def playlist_task(bvid: str) -> list:
 # 主函数【创建任务列表】
 # 判别id号的类别使用合适的解析方式下载，目前支持两种解析方式 [season_task/playlist_task]
 async def task_match() -> None:
-    id_str = "327871"
+    id_str = "98606"
     # id_str = "BV1tV411U7N3"
     isSave = True
 
@@ -157,6 +157,9 @@ async def task_match() -> None:
     龙与虎 66547
     日常 15185
     奇蛋物语 374357
+    ubw 29137 / 45745
+    fz 29923 / 13867 / 105055
+    小林 98606 / 445875
 
     CSAPP BV1tV411U7N3
     '''
