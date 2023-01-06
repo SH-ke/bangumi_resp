@@ -1,7 +1,8 @@
-import json, asyncio, aiohttp
-import os
-from danmaku_parse import seg_so_resp
+import json, asyncio, aiohttp, os
 from fake_useragent import UserAgent
+from danmaku_parse import seg_so_resp
+from task_lists import type_match
+from media_resp import media_download
 
 
 class CheckPoint:
@@ -18,8 +19,17 @@ class CheckPoint:
             "User-Agent": ua.random, 
         }
     
-    def create(self, type="all") -> bool:
-    # 1. 根据 task_xxx.json 设计check_point_xxx.json
+    async def create(self, type="") -> bool:
+        # 1. 根据 task_xxx.json 设计check_point_xxx.json
+        # 若没有 task_xxx.json 文件，则创建
+        print(os.path.isfile(self.info_json_path))
+        if not os.path.isfile(self.info_json_path):
+            print("create info json")
+            # loop = asyncio.get_event_loop()
+            # loop.run_until_complete(type_match(id_str=self.id))
+            await type_match(id_str=self.id)
+            print("info json done")
+
         with open(self.info_json_path, 'r', encoding="utf") as f:
             data = json.load(f)
         
@@ -34,6 +44,11 @@ class CheckPoint:
                 "merge": False, 
                 "dmk_list": [False] * int(info["duration"]/self.cut + 1), 
             }
+            # 若没有视频链接则默认不下载
+            if not info["video_url"]:
+                task["video"] = True
+            if not info["audio_url"]:
+                task["audio"] = True
             tasks.append(task)
 
         if type == "video":
@@ -42,8 +57,6 @@ class CheckPoint:
         elif type == "dmk":
             for t in tasks:
                 t["video"] = t["audio"] = t["merge"] = True
-        elif type == "all":
-            pass
         else:
             pass
 
@@ -56,12 +69,13 @@ class CheckPoint:
         return True
 
 
-    def tasks_match(self, task: dict, ep: dict, sess: str, 
-                    url: str) -> list:
+    def tasks_match(self, task: dict, ep: dict, sess: str) -> list:
         tasks = []
         # 弹幕任务
         # print("task match", task["name"])
         if task["dmk"] is False:
+            # 弹幕 api
+            url = 'https://api.bilibili.com/x/v2/dm/web/seg.so'
             # 一个视频有多个弹幕文件，遍历
             for i in range(int(ep["duration"]/self.cut + 1)):
                 params = {
@@ -72,8 +86,16 @@ class CheckPoint:
                 }
                 # print("task append", ep["aid"], i)
                 tasks.append(asyncio.create_task(
-                    self.seg_so_resp(task["id"], sess, params, url, ep["name"]))
+                    self.seg_so_resp(task["id"], sess, params, url, ep["bvid"]))
                     )
+        if not task["video"]:
+            tasks.append(asyncio.create_task(media_download(
+                sess, ep["audio_url"], self.headers, "audio", ep["bvid"]
+                )))
+        if not task["audio"]:
+            tasks.append(asyncio.create_task(media_download(
+                sess, ep["audio_url"], self.headers, "audio", ep["bvid"]
+                )))
 
         return tasks
 
@@ -84,44 +106,28 @@ class CheckPoint:
         # 读取url
         with open(self.info_json_path, "r", encoding="utf") as f:
             infos = json.load(f)["info_list"]
-        # 通用的变量 网络请求
-        url = 'https://api.bilibili.com/x/v2/dm/web/seg.so'
         # 分配异步协程任务
         tasks = [] # 异步协程任务列表
         async with aiohttp.ClientSession() as sess:
             for t in resps:
                 idx = t["id"]
                 ep = infos[idx]
-                tasks.extend(self.tasks_match(
-                    t, ep, sess, url
-                ))
+                tasks.extend(self.tasks_match(t, ep, sess))
+                print(f"task num : {len(tasks)}")
 
                 # 测试一个视频
-                # break
+                break
             await asyncio.wait(tasks)
 
 
-    def run(self):
+    async def run(self):
         # 调用异步协程 多次
         for _ in range(3):
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(self.run_check_point())
+            await self.run_check_point()
 
             # 若任务完成，则退出
             if self.is_finish():
                 break
-
-
-    def load(self):
-        if not os.path.exists(self.info_json_path):
-            print("info.json not exsists!")
-            return
-        if not os.path.exists(self.task_json_path):
-            print("task.json not exsists!")
-            return
-
-        self.run()
-
 
 
     async def seg_so_resp(self, idx: int, sess: aiohttp.ClientSession, 
@@ -162,8 +168,16 @@ class CheckPoint:
                 return False
 
         print("finish ")
-        return True    
+        return True
 
+
+async def main():
+    # ubw 29137 / 45745
+    # fz 29923 / 13867 / 105055
+    # 小林 98606 / 445875
+    ckpt = CheckPoint("29923")
+    await ckpt.create(type="")
+    await ckpt.run()
 
 
 if __name__ == '__main__':
@@ -172,35 +186,8 @@ if __name__ == '__main__':
 
     start = datetime.now()
     # 主入口
-    cp = CheckPoint("98606")
-    cp.create(type="dmk")
-    cp.run()
-    
-    # ubw 29137 / 45745
-    # fz 29923 / 13867 / 105055
-    # 小林 98606 / 445875
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
 
     end = datetime.now()
     print(f"共耗时{end - start}")
-
-    # 5. merge_signal()
-    # 合并任务的信号，每次完成视频、音频的任务后判断一次
-    # 判断此视频的视频、音频文件是否下载完成
-    # 若为False 函数直接返回 False
-    # 若为True 发送信号，开辟线程任务【合并音频、视频文件】
-
-    # 6. merge()
-    # 开辟线程 执行合并任务
-
-    # 7. ass_parse()
-    # 弹幕解析任务 将json格式的弹幕数据转化为ass格式
-
-    ## 断点续传部分功能还未实现
-    # 1. 架构调整 所有文件重命名均以 bvid 为准，减少不必要的麻烦
-    # 防止 dm_fate/zero.json 此类名称的出现
-    # task_list中的p 出现了 '14(OVA)' '4 - 1' 需要调整
-    # 调整之后要对之前的版本进行兼容 adaptor/rename_dmk 
-    # 以 bvid 重命名文件
-    # 2. 添加配置文件 存储变量 路径等信息
-    # 3. 添加更高层级的批量操作 调研ss_id ep_id 的区别
-    # 寻找批量的接口 api

@@ -10,7 +10,7 @@ from google.protobuf.json_format import MessageToJson
 # 异步协程【seg.so接口响应】
 # 单次请求一个seg.so文件，是协程下载的最小任务单元
 async def seg_so_resp(sess: aiohttp.ClientSession, params: dict, HEADERS: dict, 
-                    url: str, name: str, save_json=True, save_so=False) -> bool:
+                    url: str, bvid: str, save_json=True, save_so=False) -> bool:
     async with sess.get(url, params=params, headers=HEADERS) as resp:
         # 一次性获取弹幕二进制文件
         # 不用担心内存问题，弹幕文件本来就不大，而且已经360秒做了分块，可以一次性获取
@@ -31,17 +31,17 @@ async def seg_so_resp(sess: aiohttp.ClientSession, params: dict, HEADERS: dict,
 
         # 保存弹幕文件为json
         if save_json:
-            with open(f"target/dm/dm_{name}_{params['segment_index']}.json", "w", encoding="utf8") as f:
+            with open(f"target/dm/dm_{bvid}_{params['segment_index']}.json", "w", encoding="utf8") as f:
                 json.dump({
                     "elems": dm_list, 
                 }, f, indent=4, ensure_ascii=False)
 
         # 直接保存二进制文件
         if save_so:
-            with open(f"target/dm/dm_{name}_{params['segment_index']}.seg.so", "wb") as f:
+            with open(f"target/dm/dm_{bvid}_{params['segment_index']}.seg.so", "wb") as f:
                 f.write(content)
     
-        print(f"{name}_{params['segment_index']} 下载完成")
+        print(f"{bvid}_{params['segment_index']} 下载完成")
     return True
 
 
@@ -72,7 +72,7 @@ async def dmk_task(id_str: str) -> None:
                     "pid": ep["aid"], 
                     "segment_index": i+1, 
                 }
-                tasks.append(asyncio.create_task(seg_so_resp(sess, params, HEADERS, url, ep["name"])))
+                tasks.append(asyncio.create_task(seg_so_resp(sess, params, HEADERS, url, ep["bvid"])))
 
             # 测试一个视频
             # break

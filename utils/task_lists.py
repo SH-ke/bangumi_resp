@@ -15,53 +15,27 @@ BUVID3 = ""
 FFMPEG_PATH = "ffmpeg"
 
 
-async def season_resp(ep: dict, info_list: list, credential: Credential) -> None:
-    bvid = ep["bvid"]
-    videoName = ep["share_copy"].split()[-1] # 视频名称
-    p = ep["title"] # 视频序号
-
+async def season_urls(p: int, info_list: list, credential: Credential) -> None:
     # 获取视频、音频链接
     # 实例化视频对象
-    v = video.Video(bvid=bvid, credential=credential)
+    v = video.Video(bvid=info_list[p]["bvid"], credential=credential)
     # 获取视频下载链接
     try:
         url = await v.get_download_url(0)
     except ResponseCodeException:
         print("非大会员无法访问视频文件，但弹幕文件可以访问")
-    finally:
-        url = {
-            "dash": {
-                "video" : [{"baseUrl": ''}], 
-                "audio" : [{"baseUrl": ''}], 
-            }
-        }
+        return
 
     # 视频轨链接
-    video_url = url["dash"]["video"][0]['baseUrl']
+    info_list[p]["video_url"] = url["dash"]["video"][0]['baseUrl']
     # 音频轨链接
-    audio_url = url["dash"]["audio"][0]['baseUrl']
-    # print(f"video = {video_url}, audio = {audio_url}")
-
-    # 创建 dict 写入 json 
-    # 序号、标题、视频链接、音频链接
-    info =  {
-        'p': int(p), 
-        'bvid': bvid, 
-        'aid': ep["aid"], 
-        'cid': ep["cid"], 
-        'name': videoName, 
-        'video_url': video_url, 
-        'audio_url': audio_url, 
-        'duration': ep["duration"], 
-    }
-    info_list.append(info)
-    print("[info] resp done: bvid = {}, p = {:>4}, name = {}".format(bvid, p, videoName))
+    info_list[p]["audio_url"] = url["dash"]["audio"][0]['baseUrl']
+    print("[info] resp done: bvid = {}, p = {:>4}, name = {}".format(info_list[p]["bvid"], p, info_list[p]["name"]))
 
 
 async def season_task(ep_id: str) -> dict:
     # 实例化 Credential 类
     credential = Credential(sessdata=SESSDATA, bili_jct=BILI_JCT, buvid3=BUVID3)
-    # 实例化 Video 类
     url = f"https://api.bilibili.com/pgc/view/web/season?ep_id={ep_id}"
     ua = UserAgent()
     headers = {
@@ -75,17 +49,25 @@ async def season_task(ep_id: str) -> dict:
     title = result["season_title"]
     print("{:+^20}".format(f"【{title}】"))
     
-    # 并行抓取 单集序号、标题、bvid cid aid 视频数据、音频数据
+    # 解析 单集序号、标题、bvid cid aid
     info_list = []
+    for p, ep in enumerate(result["episodes"]):
+        info_list.append({
+            'p': p, 
+            'bvid': ep["bvid"], 
+            'aid': ep["aid"], 
+            'cid': ep["cid"], 
+            'name': ep["long_title"], 
+            'video_url': '', 
+            'audio_url': '', 
+        'duration': ep["duration"], 
+        })
+    # 并行抓取 视频数据、音频数据
     tasks = []
-    for ep in result["episodes"]:
-        tasks.append(asyncio.create_task(season_resp(ep, info_list, credential)))
+    for idx, ep in enumerate(result["episodes"]):
+        tasks.append(asyncio.create_task(season_urls(idx, info_list, credential)))
 
     await asyncio.wait(tasks) # 分配协程任务
-
-    # info_list 按分集序号排序
-    info_list = sorted(info_list, key=lambda x: x["p"])
-
     return {
         "title": title, 
         "info_list": info_list, 
@@ -140,11 +122,7 @@ async def playlist_task(bvid: str) -> list:
 
 # 主函数【创建任务列表】
 # 判别id号的类别使用合适的解析方式下载，目前支持两种解析方式 [season_task/playlist_task]
-async def task_match() -> None:
-    id_str = "98606"
-    # id_str = "BV1tV411U7N3"
-    isSave = True
-
+async def type_match(id_str="327584", isSave=True) -> None:
     '''
     三国   327584
     西游   327107
@@ -168,10 +146,10 @@ async def task_match() -> None:
     bvid_obj = re.compile(r"^BV[a-zA-Z0-9]{10}$")
 
     if ep_id_obj.match(id_str):
-        print("是番剧")
+        print("eposide id")
         task_json = await season_task(id_str)
     elif bvid_obj.match(id_str):
-        print("是playlist")
+        print("bvid")
         task_json = await playlist_task(id_str)
     else:
         print("暂不支持该种解析")
@@ -189,30 +167,7 @@ if __name__ == '__main__':
     start = datetime.now()
     # 主入口
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(task_match())
+    loop.run_until_complete(type_match())
 
     end = datetime.now()
     print(f"共耗时{end - start}")
-
-    ## 设计 task_list 的目的是将解析视频、音频地址的流程标准化
-    ## 使用 task_list 目前必须为 番剧 电视剧 视频列表
-    # 番剧、电视剧使用 ep_id 检索，一个电视剧对应多个 BV 号；
-    # 视频列表都只有一个 BV 号
-
-    ## season 解析思路
-    # ep_id -> json["result"]["episodes"]
-
-    ## playlist 解析思路
-    # bvid -> get_info() -> json["ugc_season"]["sections"][0]["episodes"]
-    # 获取到 [p, aid, cid, bvid, name, duration]
-    # bvid -> get_download_url -> video_url, audio_url
-
-    ## 统一化修改
-    # 信息列表响应[ep_id/bvid] -> json_parse[键值对有出入] -> 
-    # [p, aid, cid, bvid, (title/share_copy), (page-duration/duration)] (playlist/season)
-    # [此处为多次响应，应用异步协程]info_list -> video_url, audio_url
-
-    ## 函数分配
-    # url_resp(), season_parse(), playlist_parse(), task_match()
-    # 为task_list 添加更新日期
-    # 构建弹幕数据库时需要构建一个暴搜函数，暴力搜索ep_id
